@@ -456,7 +456,7 @@ if run_button:
                     max_sharpe_portfolio, min_vol_portfolio = find_optimal_portfolios(results_df)
 
                     st.header("Resultados")
-                    st.subheader("Gráfico da Fronteira Eficiente")
+                    st.subheader("Portfólios Simulados")
                     fig_ef = plot_efficient_frontier(results_df, max_sharpe_portfolio, min_vol_portfolio)
                     st.plotly_chart(fig_ef, use_container_width=True)
 
