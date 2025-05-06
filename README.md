@@ -15,3 +15,9 @@ A naive dashboard for running portfolio optimization with the Markowitz Framewor
 
 ```bash
 poetry install
+
+## Run the app
+
+```bash
+streamlit run app.py
+```
