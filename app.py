@@ -7,7 +7,7 @@ import time
 
 
 st.set_page_config(
-    page_title="Otimização de Portfólio",
+    page_title="Simulação de Portfólio",
     page_icon="📈",
     layout="wide"
 )
@@ -173,11 +173,7 @@ st.markdown(f"""
 @st.cache_data(ttl=3600)
 def get_stock_data(tickers, start_date, end_date):
     """
-    Busca preços históricos de fechamento ajustado para os tickers fornecidos.
-    Args:
-        tickers (list): Lista de tickers de ações.
-        start_date (str): Data de início para busca de dados no formato 'YYYY-MM-DD'.
-        end_date (str): Data de fim para busca de dados no formato 'YYYY-MM-DD'.
+    Search for stock data using yfinance API.
     """
     try:
         start_dt = pd.to_datetime(start_date)
@@ -219,19 +215,27 @@ def get_stock_data(tickers, start_date, end_date):
                 if len(tickers) == 1: price_data.columns = tickers
             else:
                 st.error(
-                    f"Não foram encontrados dados de 'Fechamento Ajustado' (Adj Close) nem de 'Fechamento' (Close) para o ticker: {tickers[0] if tickers else 'Desconhecido'}") # Traduzido
+                    f"Não foram encontrados dados de 'Fechamento Ajustado' " +
+                    f"(Adj Close) nem de 'Fechamento' (Close) para o " +
+                    f"ticker: {tickers[0] if tickers else 'Desconhecido'}")
                 return pd.DataFrame()
         elif isinstance(all_data, pd.Series) and len(tickers) == 1:
             price_data = all_data.to_frame(name=tickers[0])
-            st.sidebar.info(f"Dados para {tickers[0]} retornados como Série, assumindo que são dados de preço.")
+            st.sidebar.info(
+                f"Dados para {tickers[0]} retornados como Série, " +
+                f"assumindo que são dados de preço.")
         else:
-            st.error(f"Os dados baixados possuem um formato inesperado. Colunas: {all_data.columns}")
+            st.error(
+                f"Os dados baixados possuem um formato inesperado. " +
+                f"Colunas: {all_data.columns}")
             return pd.DataFrame()
 
         price_data = price_data.dropna()
         if price_data.empty:
-            st.warning(f"Nenhum dado de preço não-NaN encontrado após limpeza para os tickers:" +
-                       f" {tickers} no período selecionado.")
+            st.warning(
+                f"Nenhum dado de preço não-NaN encontrado após limpeza " +
+                f"para os tickers:" +
+                f" {tickers} no período selecionado.")
             return pd.DataFrame()
         return price_data
     except Exception as e:
@@ -240,13 +244,27 @@ def get_stock_data(tickers, start_date, end_date):
 
 
 def calculate_returns(data):
+    """
+    Calculate daily returns from the stock data.
+    :param data:
+    :return:
+    """
     if data.empty: return pd.DataFrame()
     return data.pct_change().dropna()
 
 
 def run_monte_carlo_simulation(returns, num_portfolios, risk_free_rate):
+    """
+    Run Monte Carlo simulation to find optimal portfolios.
+    :param returns:
+    :param num_portfolios:
+    :param risk_free_rate:
+    :return:
+    """
     if returns.empty or len(returns.columns) == 0:
-        st.error("Não é possível executar a simulação com dados de retorno vazios ou inválidos.")
+        st.error(
+            "Não é possível executar a simulação com dados de " +
+            "retorno vazios ou inválidos.")
         return pd.DataFrame(), None, None
 
     num_assets = len(returns.columns)
@@ -256,7 +274,9 @@ def run_monte_carlo_simulation(returns, num_portfolios, risk_free_rate):
     cov_matrix = returns.cov() * 252
 
     if cov_matrix.isnull().values.any() or (num_assets > 1 and np.linalg.det(cov_matrix) == 0):
-        st.warning("A matriz de covariância contém NaN ou é singular. A simulação pode não ser confiável.")
+        st.warning(
+            "A matriz de covariância contém NaN ou é singular. " +
+            "A simulação pode não ser concluída.")
 
     progress_bar_sidebar = st.sidebar.progress(0)
     status_text_sidebar = st.sidebar.empty()
@@ -291,6 +311,11 @@ def run_monte_carlo_simulation(returns, num_portfolios, risk_free_rate):
 
 
 def find_optimal_portfolios(results_df):
+    """
+    Find the portfolios with maximum Sharpe ratio and minimum volatility.
+    :param results_df:
+    :return:
+    """
     if results_df.empty: return None, None
     results_df['Sharpe Ratio'].replace([np.inf, -np.inf], np.nan, inplace=True)
     max_sharpe_portfolio = None
@@ -303,6 +328,13 @@ def find_optimal_portfolios(results_df):
 
 
 def plot_efficient_frontier(results_df, max_sharpe_portfolio, min_vol_portfolio):
+    """
+    Plot the efficient frontier using Plotly.
+    :param results_df:
+    :param max_sharpe_portfolio:
+    :param min_vol_portfolio:
+    :return:
+    """
     if results_df.empty:
         st.warning("Sem resultados da simulação para plotar.")
         return go.Figure()
@@ -361,7 +393,7 @@ def plot_efficient_frontier(results_df, max_sharpe_portfolio, min_vol_portfolio)
 
 
 with st.sidebar:
-    st.header("Entradas do Portfólio")
+    st.header("Parâmetros do Portfólio")
     ticker_string = st.text_input(
         "Tickers das Ações (separados por vírgula)",
         "PETR4.SA,VALE3.SA,WEGE3.SA,B3SA3.SA"
@@ -378,10 +410,10 @@ with st.sidebar:
     risk_free_rate = st.number_input("Taxa Livre de Risco (Anualizada)", min_value=0.0, max_value=0.5, value=0.02,
                                      step=0.005, format="%.4f")
 
-    run_button = st.button("Executar Otimização")
+    run_button = st.button("Executar Simulação")
 
 
-st.title("Otimização de Portfólios")
+st.title("Simulação de Portfólios - Fronteira Eficiente")
 st.markdown("""
 Este painel interativo é uma ferramenta de apoio aos seus estudos sobre a 
 Teoria Moderna do Portfólio, desenvolvida por Harry Markowitz. Com base 
