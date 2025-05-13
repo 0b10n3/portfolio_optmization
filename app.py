@@ -4,20 +4,49 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import time
+import base64
 
+
+def carregar_svg_como_base64(caminho_arquivo):
+    try:
+        with open(caminho_arquivo, "rb") as f:
+            conteudo_binario = f.read()
+        conteudo_base64 = base64.b64encode(conteudo_binario).decode("utf-8")
+        return f"data:image/svg+xml;base64,{conteudo_base64}"
+    except FileNotFoundError:
+        return "📈"
+    except Exception as e:
+        return "📈"
+
+
+icone_pagina_svg = "📈"
 
 st.set_page_config(
     page_title="Simulação de Portfólio",
-    page_icon="📈",
+    page_icon=icone_pagina_svg,
     layout="wide"
 )
+
+NM_PALETTE = {
+    "forestDepthDark": "#102620",
+    "primaryForestDepth": "#1A3C34",
+    "charcoalSophistication": "#333333",
+    "mintSerenityLight": "#EAF0E2",
+    "mintSerenityDark": "#B8C8A8",
+    "forestDepthLight": "#346C5C",
+    "skyTrust": "#007BFF",
+    "skyTrustLight": "#4DA3FF",
+    "mintSerenity": "#D9E6C8",
+    "oneOverNColor": "#FFD700",
+    "pristineClarity": "#FFFFFF"
+}
 
 st.markdown(f"""
 <style>
     /* Estilização geral do corpo */
     body {{
-        color: #EAF0E2; /* Mint Serenity Light - Texto Principal */
-        background-color: #102620; /* Forest Depth Dark - Fundo Principal */
+        color: {NM_PALETTE['mintSerenityLight']}; 
+        background-color: {NM_PALETTE['forestDepthDark']}; 
         font-family: 'Inter', sans-serif;
     }}
 
@@ -28,34 +57,34 @@ st.markdown(f"""
         padding-left: 3rem;
         padding-right: 3rem;
         border-radius: 15px;
-        background-color: #1A3C34; /* PrimaryForest Depth - Fundo do Conteúdo */
-        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15); /* Sombra Sky Trust, levemente mais visível */
+        background-color: {NM_PALETTE['primaryForestDepth']}; 
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15); 
     }}
 
     /* Estilização da barra lateral */
     [data-testid="stSidebar"] {{
-        background-color: #102620; /* Forest Depth Dark - Fundo da Barra Lateral */
-        border-right: 1px solid #346C5C; /* Forest Depth Light - Borda */
+        background-color: {NM_PALETTE['forestDepthDark']}; 
+        border-right: 1px solid {NM_PALETTE['forestDepthLight']}; 
     }}
     [data-testid="stSidebar"] .stTextInput > label,
     [data-testid="stSidebar"] .stDateInput > label,
     [data-testid="stSidebar"] .stNumberInput > label {{
-        color: #D9E6C8 !important; /* Mint Serenity - Rótulos na barra lateral */
+        color: {NM_PALETTE['mintSerenity']} !important; 
         font-weight: bold;
     }}
     [data-testid="stSidebar"] .stTextInput > div > div > input,
     [data-testid="stSidebar"] .stDateInput > div > div > input,
     [data-testid="stSidebar"] .stNumberInput > div > div > input {{
-        background-color: #333333; /* Charcoal Sophistication - Fundo do Input */
-        color: #EAF0E2; /* Mint Serenity Light - Texto do Input */
-        border: 1px solid #346C5C; /* Forest Depth Light - Borda do Input */
+        background-color: {NM_PALETTE['charcoalSophistication']}; 
+        color: {NM_PALETTE['mintSerenityLight']}; 
+        border: 1px solid {NM_PALETTE['forestDepthLight']}; 
         border-radius: 8px;
     }}
 
     /* Botões */
     .stButton > button {{
-        background-color: #D9E6C8; /* Mint Serenity - Usado como cor de destaque para o botão, conforme seu código */
-        color: #102620; /* Forest Depth Dark - Texto do Botão */
+        background-color: {NM_PALETTE['mintSerenity']}; 
+        color: {NM_PALETTE['forestDepthDark']}; 
         border: none;
         border-radius: 8px;
         padding: 0.5rem 1rem;
@@ -63,47 +92,46 @@ st.markdown(f"""
         transition: background-color 0.3s ease, color 0.3s ease;
     }}
     .stButton > button:hover {{
-        background-color: #EAF0E2; /* Mint Serenity Light - Hover */
-        color: #102620;
+        background-color: {NM_PALETTE['mintSerenityLight']}; 
+        color: {NM_PALETTE['forestDepthDark']};
     }}
     .stButton > button:active {{
-        background-color: #B8C8A8; /* Mint Serenity Dark - Active */
-        color: #102620;
+        background-color: {NM_PALETTE['mintSerenityDark']}; 
+        color: {NM_PALETTE['forestDepthDark']};
     }}
 
     /* Expansor */
     .streamlit-expanderHeader {{
         font-size: 1.1rem;
-        color: #D9E6C8; /* Mint Serenity - Texto do Cabeçalho */
+        color: {NM_PALETTE['mintSerenity']}; 
         font-weight: bold;
     }}
     .streamlit-expanderContent {{
-        background-color: #333333; /* Charcoal Sophistication - Fundo do Conteúdo */
+        background-color: {NM_PALETTE['charcoalSophistication']}; 
         border-radius: 0 0 8px 8px;
-        border: 1px solid #346C5C; /* Forest Depth Light - Borda */
+        border: 1px solid {NM_PALETTE['forestDepthLight']}; 
         border-top: none;
         padding: 1rem;
-        color: #EAF0E2; /* Mint Serenity Light - Texto */
+        color: {NM_PALETTE['mintSerenityLight']}; 
     }}
 
     /* Dataframes */
-    .stDataFrame {{ /* Container do dataframe */
+    .stDataFrame {{ 
         border-radius: 8px;
         overflow: hidden;
     }}
-     /* Estilização para o dataframe, cabeçalho e células */
     .stDataFrame table {{
-        color: #EAF0E2; /* Cor do texto para os dados */
+        color: {NM_PALETTE['mintSerenityLight']}; 
     }}
     .stDataFrame thead th {{
-        background-color: #346C5C; /* Forest Depth Light para o cabeçalho */
-        color: #D9E6C8; /* Mint Serenity para o texto do cabeçalho */
+        background-color: {NM_PALETTE['forestDepthLight']}; 
+        color: {NM_PALETTE['mintSerenity']}; 
     }}
     .stDataFrame tbody tr:nth-child(even) {{
-        background-color: #333333; /* Charcoal para linhas pares */
+        background-color: {NM_PALETTE['charcoalSophistication']}; 
     }}
     .stDataFrame tbody tr:nth-child(odd) {{
-        background-color: #1A3C34; /* Primary Forest Depth para linhas ímpares */
+        background-color: {NM_PALETTE['primaryForestDepth']}; 
     }}
 
     /* Fundo do gráfico Plotly */
@@ -114,42 +142,36 @@ st.markdown(f"""
 
     /* Títulos e Cabeçalhos */
     h1, h2, h3 {{
-        color: #D9E6C8; /* Mint Serenity - Cabeçalhos Principais */
+        color: {NM_PALETTE['mintSerenity']}; 
         font-weight: bold;
     }}
     h1 {{
-        border-bottom: 2px solid #346C5C; /* Forest Depth Light - Sublinhado */
+        border-bottom: 2px solid {NM_PALETTE['forestDepthLight']}; 
         padding-bottom: 0.3em;
     }}
     h4, h5, h6 {{
-        color: #B8C8A8; /* Mint Serenity Dark - Sub-cabeçalhos */
+        color: {NM_PALETTE['mintSerenityDark']}; 
     }}
 
     /* Mensagens específicas do Streamlit */
     .stAlert {{
         border-radius: 8px;
-        color: #102620; /* Texto escuro para melhor contraste em fundos claros de alerta */
+        color: {NM_PALETTE['forestDepthDark']}; 
     }}
-    div[data-testid="stInfo"] {{
-        background-color: #D9E6C8; /* Mint Serenity */
-        border: 1px solid #346C5C; /* Forest Depth Light */
-        color: #1A3C34; /* Texto Primary Forest Depth */
+    div[data-testid="stInfo"], div[data-testid="stSuccess"] {{
+        background-color: {NM_PALETTE['mintSerenity']}; 
+        border: 1px solid {NM_PALETTE['forestDepthLight']}; 
+        color: {NM_PALETTE['primaryForestDepth']}; 
     }}
-    div[data-testid="stInfo"] svg {{ fill: #1A3C34; }}
-    div[data-testid="stSuccess"] {{
-        background-color: #D9E6C8; /* Mint Serenity */
-        border: 1px solid #346C5C; /* Forest Depth Light */
-        color: #1A3C34; /* Texto Primary Forest Depth */
-    }}
-    div[data-testid="stSuccess"] svg {{ fill: #1A3C34; }}
+    div[data-testid="stInfo"] svg, div[data-testid="stSuccess"] svg {{ fill: {NM_PALETTE['primaryForestDepth']}; }}
     div[data-testid="stWarning"] {{
-        background-color: #FFF3E0; /* Laranja/amarelo claro - mantendo para visibilidade */
+        background-color: #FFF3E0; 
         border: 1px solid #FFA000;
         color: #C66900;
     }}
     div[data-testid="stWarning"] svg {{ fill: #FFA000; }}
     div[data-testid="stError"] {{
-        background-color: #FFEBEE; /* Vermelho claro - mantendo para visibilidade */
+        background-color: #FFEBEE; 
         border: 1px solid #D32F2F;
         color: #B71C1C;
     }}
@@ -157,10 +179,10 @@ st.markdown(f"""
 
     /* Rótulos e valores de métricas */
     .stMetric > label {{
-        color: #B8C8A8 !important; /* Mint Serenity Dark para rótulos de métricas */
+        color: {NM_PALETTE['mintSerenityDark']} !important; 
     }}
     .stMetric > div[data-testid="stMetricValue"] {{
-        color: #EAF0E2 !important; /* Mint Serenity Light para valores de métricas */
+        color: {NM_PALETTE['mintSerenityLight']} !important; 
     }}
 
 </style>
@@ -175,67 +197,51 @@ def get_stock_data(tickers, start_date, end_date):
     """
     Search for stock data using yfinance API.
     """
+
     try:
         start_dt = pd.to_datetime(start_date)
         end_dt = pd.to_datetime(end_date)
-        all_data = yf.download(tickers, start=start_dt, end=end_dt, progress=False)
+        all_data = yf.download(tickers, start=start_dt, end=end_dt, progress=False, auto_adjust=False)
 
         if all_data.empty:
-            st.error(
-                f"Nenhum dado para os tickers: {tickers}. Verifique " +
-                f" se os tickers são válidos.")
+            st.error(f"Nenhum dado para os tickers: {tickers}. Verifique se os tickers são válidos.")
             return pd.DataFrame()
 
+        price_data = pd.DataFrame()
         if isinstance(all_data.columns, pd.MultiIndex):
-            available_metrics = all_data.columns.levels[0]
-            if 'Adj Close' in available_metrics:
+            if 'Adj Close' in all_data.columns.levels[0]:
                 price_data = all_data['Adj Close']
-            elif 'Close' in available_metrics:
+            elif 'Close' in all_data.columns.levels[0]:
                 price_data = all_data['Close']
                 st.sidebar.info(
-                    f"Usando preços de 'Fechamento' (Close) pois "
-                    f"'Fechamento Ajustado' (Adj Close) não disponível.")
+                    "Usando preços de 'Fechamento' (Close) pois 'Fechamento Ajustado' (Adj Close) não disponível.")
             else:
                 st.error(
-                    f"Não foram encontrados dados de 'Fechamento Ajustado' " +
-                    f"(Adj Close) nem de 'Fechamento' (Close) no conjunto " +
-                    f"de dados baixado.")
+                    "Não foram encontrados dados de 'Fechamento Ajustado' (Adj Close) nem de 'Fechamento' (Close).")
                 return pd.DataFrame()
-        elif isinstance(all_data, pd.DataFrame):
+        elif isinstance(all_data, pd.DataFrame):  # Caso de um único ticker
             if 'Adj Close' in all_data.columns:
                 price_data = all_data[['Adj Close']]
-                if len(tickers) == 1: price_data.columns = tickers
             elif 'Close' in all_data.columns:
                 price_data = all_data[['Close']]
-                st.sidebar.info(
-                    f"Usando preço de 'Fechamento' (Close) para" +
-                    f" {tickers[0] if tickers else 'o ticker'} pois" +
-                    f" 'Fechamento Ajustado' (Adj Close) não estava " +
-                    f"disponível.")
-                if len(tickers) == 1: price_data.columns = tickers
+                if len(tickers) == 1: st.sidebar.info(
+                    f"Usando preço de 'Fechamento' (Close) para {tickers[0]} pois 'Fechamento Ajustado' (Adj Close) não estava disponível.")
             else:
                 st.error(
-                    f"Não foram encontrados dados de 'Fechamento Ajustado' " +
-                    f"(Adj Close) nem de 'Fechamento' (Close) para o " +
-                    f"ticker: {tickers[0] if tickers else 'Desconhecido'}")
+                    f"Não foram encontrados dados de 'Fechamento Ajustado' (Adj Close) nem de 'Fechamento' (Close) para o ticker: {tickers[0] if tickers else 'Desconhecido'}")
                 return pd.DataFrame()
-        elif isinstance(all_data, pd.Series) and len(tickers) == 1:
-            price_data = all_data.to_frame(name=tickers[0])
-            st.sidebar.info(
-                f"Dados para {tickers[0]} retornados como Série, " +
-                f"assumindo que são dados de preço.")
-        else:
-            st.error(
-                f"Os dados baixados possuem um formato inesperado. " +
-                f"Colunas: {all_data.columns}")
+
+            # Renomear coluna para o nome do ticker se for apenas um
+            if len(tickers) == 1 and not price_data.empty:
+                price_data.columns = tickers
+        else:  # Caso inesperado
+            st.error(f"Os dados baixados possuem um formato inesperado. Tipo: {type(all_data)}")
             return pd.DataFrame()
 
         price_data = price_data.dropna()
         if price_data.empty:
             st.warning(
-                f"Nenhum dado de preço não-NaN encontrado após limpeza " +
-                f"para os tickers:" +
-                f" {tickers} no período selecionado.")
+                f"Nenhum dado de preço não-NaN encontrado após limpeza para os tickers: {tickers} no período selecionado.")
             return pd.DataFrame()
         return price_data
     except Exception as e:
@@ -244,78 +250,75 @@ def get_stock_data(tickers, start_date, end_date):
 
 
 def calculate_returns(data):
-    """
-    Calculate daily returns from the stock data.
-    :param data:
-    :return:
-    """
     if data.empty: return pd.DataFrame()
     return data.pct_change().dropna()
 
 
 def run_monte_carlo_simulation(returns, num_portfolios, risk_free_rate):
-    """
-    Run Monte Carlo simulation to find optimal portfolios.
-    :param returns:
-    :param num_portfolios:
-    :param risk_free_rate:
-    :return:
-    """
     if returns.empty or len(returns.columns) == 0:
-        st.error(
-            "Não é possível executar a simulação com dados de " +
-            "retorno vazios ou inválidos.")
-        return pd.DataFrame(), None, None
+        st.error("Não é possível executar a simulação com dados de retorno vazios ou inválidos.")
+        return pd.DataFrame(), None, None, None
 
     num_assets = len(returns.columns)
     asset_names = [str(col) for col in returns.columns]
-    results = np.zeros((3 + num_assets, num_portfolios))
-    mean_returns = returns.mean() * 252
-    cov_matrix = returns.cov() * 252
 
-    if cov_matrix.isnull().values.any() or (num_assets > 1 and np.linalg.det(cov_matrix) == 0):
-        st.warning(
-            "A matriz de covariância contém NaN ou é singular. " +
-            "A simulação pode não ser concluída.")
+    results_mc = np.zeros((3 + num_assets, num_portfolios))
+    mean_returns_annualized = returns.mean() * 252
+    cov_matrix_annualized = returns.cov() * 252
+
+    if cov_matrix_annualized.isnull().values.any() or (num_assets > 1 and np.linalg.det(cov_matrix_annualized) == 0):
+        st.warning("A matriz de covariância contém NaN ou é singular. A simulação pode não ser concluída.")
 
     progress_bar_sidebar = st.sidebar.progress(0)
     status_text_sidebar = st.sidebar.empty()
-    status_text_sidebar.text("Iniciando Simulação...")
+    status_text_sidebar.text("Iniciando Simulação de Monte Carlo...")
 
     for i in range(num_portfolios):
         weights = np.random.random(num_assets)
         weights /= np.sum(weights)
-        portfolio_return = np.sum(mean_returns.values * weights)
-        portfolio_stddev = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
+        portfolio_return = np.sum(mean_returns_annualized.values * weights)
+        portfolio_stddev = np.sqrt(np.dot(weights.T, np.dot(cov_matrix_annualized, weights)))
         sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_stddev if portfolio_stddev != 0 else (
             np.inf if portfolio_return > risk_free_rate else (-np.inf if portfolio_return < risk_free_rate else 0))
 
-        results[0, i] = portfolio_return
-        results[1, i] = portfolio_stddev
-        results[2, i] = sharpe_ratio
-        for j in range(num_assets): results[j + 3, i] = weights[j]
+        results_mc[0, i] = portfolio_return
+        results_mc[1, i] = portfolio_stddev
+        results_mc[2, i] = sharpe_ratio
+        for j in range(num_assets): results_mc[j + 3, i] = weights[j]
 
         if (i + 1) % (num_portfolios // 100 or 1) == 0:
             progress_percentage = int(((i + 1) / num_portfolios) * 100)
             progress_bar_sidebar.progress(progress_percentage)
             status_text_sidebar.text(f"Executando Simulação: {progress_percentage}% Completo")
 
-    status_text_sidebar.text("Simulação Completa!")
+    status_text_sidebar.text("Simulação de Monte Carlo Completa!")
     time.sleep(1)
     progress_bar_sidebar.empty()
     status_text_sidebar.empty()
 
-    column_names = ['Retorno', 'Volatilidade', 'Sharpe Ratio'] + asset_names
-    results_df = pd.DataFrame(results.T, columns=column_names)
-    return results_df, mean_returns, cov_matrix
+    column_names_mc = ['Retorno', 'Volatilidade', 'Sharpe Ratio'] + asset_names
+    results_df = pd.DataFrame(results_mc.T, columns=column_names_mc)
+
+    # Calcular Portfólio 1/N
+    one_over_n_weights_array = np.array([1 / num_assets] * num_assets)
+    one_over_n_return = np.sum(mean_returns_annualized.values * one_over_n_weights_array)
+    one_over_n_volatility = np.sqrt(
+        np.dot(one_over_n_weights_array.T, np.dot(cov_matrix_annualized, one_over_n_weights_array)))
+    one_over_n_sharpe = (
+                                    one_over_n_return - risk_free_rate) / one_over_n_volatility if one_over_n_volatility != 0 else (
+        np.inf if one_over_n_return > risk_free_rate else (-np.inf if one_over_n_return < risk_free_rate else 0))
+
+    one_over_n_portfolio_data = {
+        'Retorno': one_over_n_return,
+        'Volatilidade': one_over_n_volatility,
+        'Sharpe Ratio': one_over_n_sharpe,
+        'Pesos': pd.Series(one_over_n_weights_array, index=asset_names)  # Pesos como pd.Series
+    }
+
+    return results_df, mean_returns_annualized, cov_matrix_annualized, one_over_n_portfolio_data
 
 
 def find_optimal_portfolios(results_df):
-    """
-    Find the portfolios with maximum Sharpe ratio and minimum volatility.
-    :param results_df:
-    :return:
-    """
     if results_df.empty: return None, None
     results_df['Sharpe Ratio'].replace([np.inf, -np.inf], np.nan, inplace=True)
     max_sharpe_portfolio = None
@@ -327,14 +330,7 @@ def find_optimal_portfolios(results_df):
     return max_sharpe_portfolio, min_vol_portfolio
 
 
-def plot_efficient_frontier(results_df, max_sharpe_portfolio, min_vol_portfolio):
-    """
-    Plot the efficient frontier using Plotly.
-    :param results_df:
-    :param max_sharpe_portfolio:
-    :param min_vol_portfolio:
-    :return:
-    """
+def plot_efficient_frontier(results_df, max_sharpe_portfolio, min_vol_portfolio, one_over_n_portfolio, palette):
     if results_df.empty:
         st.warning("Sem resultados da simulação para plotar.")
         return go.Figure()
@@ -349,11 +345,8 @@ def plot_efficient_frontier(results_df, max_sharpe_portfolio, min_vol_portfolio)
             size=7,
             opacity=0.7,
             colorbar=dict(
-                title=dict(
-                    text='Índice de Sharpe',
-                    font=dict(color='#EAF0E2')
-                ),
-                tickfont=dict(color='#EAF0E2')
+                title=dict(text='Índice de Sharpe', font=dict(color=palette['mintSerenityLight'])),
+                tickfont=dict(color=palette['mintSerenityLight'])
             )
         ),
         name='Portfólios Simulados',
@@ -363,31 +356,41 @@ def plot_efficient_frontier(results_df, max_sharpe_portfolio, min_vol_portfolio)
     if max_sharpe_portfolio is not None and not max_sharpe_portfolio.empty:
         fig.add_trace(
             go.Scattergl(x=[max_sharpe_portfolio['Volatilidade']], y=[max_sharpe_portfolio['Retorno']], mode='markers',
-                         marker=dict(color='#4DA3FF', size=12, symbol='star', line=dict(width=1, color='#FFFFFF')),
-                         name='Max Sharpe Ratio'))
+                         marker=dict(color=palette['skyTrustLight'], size=12, symbol='star',
+                                     line=dict(width=1, color=palette['pristineClarity'])),
+                         name='Máx. Índice de Sharpe'))
     if min_vol_portfolio is not None and not min_vol_portfolio.empty:
-        fig.add_trace(go.Scattergl(x=[min_vol_portfolio['Volatilidade']], y=[min_vol_portfolio['Retorno']], mode='markers',
-                                   marker=dict(color='#D9E6C8', size=12, symbol='diamond',
-                                               line=dict(width=1, color='#102620')),
-                                   name='Min Volatilidade'))
+        fig.add_trace(
+            go.Scattergl(x=[min_vol_portfolio['Volatilidade']], y=[min_vol_portfolio['Retorno']], mode='markers',
+                         marker=dict(color=palette['mintSerenity'], size=12, symbol='diamond',
+                                     line=dict(width=1, color=palette['forestDepthDark'])),
+                         name='Mín. Volatilidade'))
+    if one_over_n_portfolio is not None:
+        fig.add_trace(
+            go.Scattergl(x=[one_over_n_portfolio['Volatilidade']], y=[one_over_n_portfolio['Retorno']], mode='markers',
+                         marker=dict(color=palette['oneOverNColor'], size=10, symbol='triangle-up',
+                                     line=dict(width=1, color=palette['forestDepthDark'])),
+                         name='Portfólio 1/N'))
 
     fig.update_layout(
-        title=dict(text='Simulação da Fronteira Eficiente', font=dict(color='#D9E6C8')),
-        xaxis_title=dict(text='Volatilidade Anualizada (Desvio Padrão)', font=dict(color='#B8C8A8')),
-        yaxis_title=dict(text='Retorno Anualizado', font=dict(color='#B8C8A8')),
-        xaxis=dict(tickformat='.1%', gridcolor='#346C5C', tickfont=dict(color='#B8C8A8')),
-        yaxis=dict(tickformat='.1%', gridcolor='#346C5C', tickfont=dict(color='#B8C8A8')),
+        title=dict(text='Simulação da Fronteira Eficiente', font=dict(color=palette['mintSerenity'])),
+        xaxis_title=dict(text='Volatilidade Anualizada (Desvio Padrão)', font=dict(color=palette['mintSerenityDark'])),
+        yaxis_title=dict(text='Retorno Anualizado', font=dict(color=palette['mintSerenityDark'])),
+        xaxis=dict(tickformat='.1%', gridcolor=palette['forestDepthLight'],
+                   tickfont=dict(color=palette['mintSerenityDark'])),
+        yaxis=dict(tickformat='.1%', gridcolor=palette['forestDepthLight'],
+                   tickfont=dict(color=palette['mintSerenityDark'])),
         showlegend=True,
         legend=dict(
             orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
-            font=dict(color='#EAF0E2'),
-            bgcolor='#0E1117',
-            bordercolor='#346C5C',
+            font=dict(color=palette['mintSerenityLight']),
+            bgcolor=NM_PALETTE['primaryForestDepth'],
+            bordercolor=palette['forestDepthLight'],
             borderwidth=1
         ),
-        plot_bgcolor='#0E1117',
-        paper_bgcolor='#0E1117',
-        font=dict(color='#EAF0E2')
+        plot_bgcolor='rgba(0,0,0,0)',  # Fundo da área de plotagem transparente
+        paper_bgcolor='rgba(0,0,0,0)', # Fundo geral do gráfico transparente
+        font=dict(color=palette['mintSerenityLight'])
     )
     return fig
 
@@ -402,16 +405,17 @@ with st.sidebar:
 
     col_sd, col_ed = st.columns(2)
     with col_sd:
-        start_date_input = st.date_input("Data de Início", pd.to_datetime("2024-01-01").date())
+        start_date_input = st.date_input("Data de Início",
+                                         pd.to_datetime("2023-01-01").date())
     with col_ed:
         end_date_input = st.date_input("Data Final", pd.Timestamp.now().normalize().date())
 
-    num_portfolios = st.number_input("Número de Simulações", min_value=500, max_value=50000, value=5000, step=500)
-    risk_free_rate = st.number_input("Taxa Livre de Risco (Anualizada)", min_value=0.0, max_value=0.5, value=0.02,
+    num_portfolios = st.number_input("Número de Simulações", min_value=100, max_value=10000, value=2000,
+                                     step=100)
+    risk_free_rate = st.number_input("Taxa Livre de Risco (Anualizada)", min_value=0.0, max_value=0.5, value=0.10,
                                      step=0.005, format="%.4f")
 
     run_button = st.button("Executar Simulação")
-
 
 st.title("Simulação de Portfólios - Fronteira Eficiente")
 st.markdown("""
@@ -445,11 +449,13 @@ if run_button:
             returns = calculate_returns(stock_data)
 
             if returns.empty or len(returns) < 2:
-                st.warning("Não há dados históricos válidos suficientes para calcular os retornos (são necessários pelo menos 2 dias).")
+                st.warning(
+                    "Não há dados históricos válidos suficientes para calcular os retornos (são necessários pelo menos 2 dias).")
             else:
                 with st.spinner("Executando Simulação de Monte Carlo... Isso pode levar um momento."):
-                    results_df, mean_returns, cov_matrix = run_monte_carlo_simulation(returns, num_portfolios,
-                                                                                      risk_free_rate)
+                    results_df, mean_returns, cov_matrix, one_over_n_portfolio = run_monte_carlo_simulation(returns,
+                                                                                                            num_portfolios,
+                                                                                                            risk_free_rate)
 
                 if not results_df.empty:
                     st.success("Simulação completa!")
@@ -457,15 +463,16 @@ if run_button:
 
                     st.header("Resultados")
                     st.subheader("Portfólios Simulados")
-                    fig_ef = plot_efficient_frontier(results_df, max_sharpe_portfolio, min_vol_portfolio)
+                    fig_ef = plot_efficient_frontier(results_df, max_sharpe_portfolio, min_vol_portfolio,
+                                                     one_over_n_portfolio, NM_PALETTE)
                     st.plotly_chart(fig_ef, use_container_width=True)
 
-                    st.subheader("Portfólios Ótimos")
-                    col_msp, col_mvp = st.columns(2)
+                    st.subheader("Portfólios de Referência")
+                    col_msp, col_mvp, col_1_n = st.columns(3)
 
                     if max_sharpe_portfolio is not None and not max_sharpe_portfolio.empty:
                         with col_msp:
-                            st.markdown("#### Portfólio de Máximo Índice de Sharpe")
+                            st.markdown("#### Máximo Índice de Sharpe")
                             st.metric("Retorno", f"{max_sharpe_portfolio['Retorno']:.2%}")
                             st.metric("Volatilidade", f"{max_sharpe_portfolio['Volatilidade']:.2%}")
                             st.metric("Índice de Sharpe", f"{max_sharpe_portfolio['Sharpe Ratio']:.2f}")
@@ -478,7 +485,7 @@ if run_button:
 
                     if min_vol_portfolio is not None and not min_vol_portfolio.empty:
                         with col_mvp:
-                            st.markdown("#### Portfólio de Mínima Volatilidade")
+                            st.markdown("#### Mínima Volatilidade")
                             st.metric("Retorno", f"{min_vol_portfolio['Retorno']:.2%}")
                             st.metric("Volatilidade", f"{min_vol_portfolio['Volatilidade']:.2%}")
                             st.metric("Índice de Sharpe", f"{min_vol_portfolio['Sharpe Ratio']:.2f}")
@@ -488,6 +495,15 @@ if run_button:
                     else:
                         with col_mvp:
                             st.warning("Não foi possível determinar o portfólio de Mínima Volatilidade.")
+
+                    if one_over_n_portfolio is not None:
+                        with col_1_n:
+                            st.markdown("#### Portfólio 1/N (Igual Ponderação)")
+                            st.metric("Retorno", f"{one_over_n_portfolio['Retorno']:.2%}")
+                            st.metric("Volatilidade", f"{one_over_n_portfolio['Volatilidade']:.2%}")
+                            st.metric("Índice de Sharpe", f"{one_over_n_portfolio['Sharpe Ratio']:.2f}")
+                            st.markdown("##### Pesos:")
+                            st.dataframe(one_over_n_portfolio['Pesos'].map('{:.2%}'.format), use_container_width=True)
 
                     with st.expander("Ver Preços Selecionados Brutos (Fech. Ajust. ou Fech.)"):
                         st.dataframe(stock_data, use_container_width=True)
