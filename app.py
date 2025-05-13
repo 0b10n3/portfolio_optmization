@@ -8,6 +8,12 @@ import base64
 
 
 def carregar_svg_como_base64(caminho_arquivo):
+    """
+    Carrega um arquivo SVG e o converte para uma string base64.
+    :param caminho_arquivo:
+    :return:
+    """
+
     try:
         with open(caminho_arquivo, "rb") as f:
             conteudo_binario = f.read()
@@ -195,7 +201,7 @@ st.markdown(f"""
 @st.cache_data(ttl=3600)
 def get_stock_data(tickers, start_date, end_date):
     """
-    Search for stock data using yfinance API.
+    Procura dados de ações usando yfinance.
     """
 
     try:
@@ -231,10 +237,9 @@ def get_stock_data(tickers, start_date, end_date):
                     f"Não foram encontrados dados de 'Fechamento Ajustado' (Adj Close) nem de 'Fechamento' (Close) para o ticker: {tickers[0] if tickers else 'Desconhecido'}")
                 return pd.DataFrame()
 
-            # Renomear coluna para o nome do ticker se for apenas um
             if len(tickers) == 1 and not price_data.empty:
                 price_data.columns = tickers
-        else:  # Caso inesperado
+        else:
             st.error(f"Os dados baixados possuem um formato inesperado. Tipo: {type(all_data)}")
             return pd.DataFrame()
 
@@ -250,11 +255,25 @@ def get_stock_data(tickers, start_date, end_date):
 
 
 def calculate_returns(data):
+    """
+    Calcula os retornos diários a partir dos preços ajustados.
+    :param data:
+    :return:
+    """
+
     if data.empty: return pd.DataFrame()
     return data.pct_change().dropna()
 
 
 def run_monte_carlo_simulation(returns, num_portfolios, risk_free_rate):
+    """
+    Executa a simulação de Monte Carlo para otimização de portfólio.
+    :param returns:
+    :param num_portfolios:
+    :param risk_free_rate:
+    :return:
+    """
+
     if returns.empty or len(returns.columns) == 0:
         st.error("Não é possível executar a simulação com dados de retorno vazios ou inválidos.")
         return pd.DataFrame(), None, None, None
@@ -299,7 +318,6 @@ def run_monte_carlo_simulation(returns, num_portfolios, risk_free_rate):
     column_names_mc = ['Retorno', 'Volatilidade', 'Sharpe Ratio'] + asset_names
     results_df = pd.DataFrame(results_mc.T, columns=column_names_mc)
 
-    # Calcular Portfólio 1/N
     one_over_n_weights_array = np.array([1 / num_assets] * num_assets)
     one_over_n_return = np.sum(mean_returns_annualized.values * one_over_n_weights_array)
     one_over_n_volatility = np.sqrt(
@@ -319,6 +337,12 @@ def run_monte_carlo_simulation(returns, num_portfolios, risk_free_rate):
 
 
 def find_optimal_portfolios(results_df):
+    """
+    Busca os portfólios ótimos com base no índice de Sharpe e na volatilidade mínima.
+    :param results_df:
+    :return:
+    """
+
     if results_df.empty: return None, None
     results_df['Sharpe Ratio'].replace([np.inf, -np.inf], np.nan, inplace=True)
     max_sharpe_portfolio = None
@@ -331,6 +355,16 @@ def find_optimal_portfolios(results_df):
 
 
 def plot_efficient_frontier(results_df, max_sharpe_portfolio, min_vol_portfolio, one_over_n_portfolio, palette):
+    """
+    Plota a fronteira eficiente com os portfólios simulados e os portfólios de referência.
+    :param results_df:
+    :param max_sharpe_portfolio:
+    :param min_vol_portfolio:
+    :param one_over_n_portfolio:
+    :param palette:
+    :return:
+    """
+
     if results_df.empty:
         st.warning("Sem resultados da simulação para plotar.")
         return go.Figure()
